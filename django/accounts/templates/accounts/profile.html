@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ person.username }} 님의 프로필</h1>
+  {% comment %} {% if user.image %}
+    <img src="{{ user.image.url }}" alt="{{ user.image }}">
+    <br>
+  {% else %}
+    <form action="{% url 'articles:create' %}" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <input type="submit">
+    </form>
+  {% endif %} {% endcomment %}
+
+  {% with followers=person.followers.all followings=person.followings.all %}
+  {% comment %} 이제 축약하겠다는 뜻임 with 블락 안에서 {% endcomment %}
+  <div id="follow-cnt">
+    팔로워 : {{ followers|length }} / 팔로우 : {{ followings|length }}
+  </div>
+  <div>
+    {% if user != person %}
+      <form data-person-pk="{{ person.pk }}" id="follow-form" action="{% url 'accounts:follow' person.pk %}" method="POST">
+        <!-- {% csrf_token %} 밑에 만져줘서 필요없음 장고언어-->
+        {% if user in followers %}
+          <button>언팔로우</button> 
+          <!-- <input type="submit" value="언팔로우"> -->
+        {% else %}
+          <button>팔로우</button>
+          <!-- <input type="submit" value="팔로우"> -->
+        {% endif %}
+      </a>
+      </form>
+    {% endif %}
+  </div>
+{% endwith %}
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    const form = document.querySelector('#follow-form')
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const personPk = form.dataset.personPk
+    form.addEventListener('submit', function(event){
+      event.preventDefault()
+      axios({
+        method: 'post',
+        url: `/accounts/${personPk}/follow/`,
+        headers : {
+          'X-CSRFToken' : csrftoken
+        }
+      })
+      
+      .then(res=>{
+        console.log(res)
+      //버튼 선택 ->값 바꿔주고
+      //팔로우수 선택해서 값 바꿔 주고
+        const liked = res.data.liked
+        const button = document.querySelector('button')
+        if(liked === true){
+          button.innerText = '언팔로우'
+          
+        }else{
+          button.innerText = '팔로우'
+         
+        }
+        const followCnt = document.querySelector('#follow-cnt')
+        const followerCnt = res.data.follower_cnt
+        const followingCnt = res.data.following_cnt
+        followCnt.innerText = `팔로워 : ${followerCnt} / 팔로우 : ${followingCnt}`
+    })
+    })
+
+  </script>
+
+<hr>
+
+<h2>{{ person.username }}'s 게시글</h2>
+{% for article in person.article_set.all %}
+  <a href="{% url 'articles:detail' article.pk %}"><li>{{ article.title }}</li></a>
+{% endfor %}
+
+<hr>
+
+<h2>{{ person.username }}'s 댓글</h2>
+{% for comment in person.comment_set.all %}
+  <div>{{ comment.content }}</div>
+{% endfor %}
+
+<hr>
+
+<h2>{{ person.username }}'s 좋아요한 게시글</h2>
+{% for article in person.like_articles.all %}
+  <a href="{% url 'articles:detail' article.pk %}"><li>{{ article.title }}</li></a>
+{% endfor %}
+
+<hr>
+
+<a href="{% url 'articles:index'%}">back</a>
+
+{% endblock content %}
+
+
+

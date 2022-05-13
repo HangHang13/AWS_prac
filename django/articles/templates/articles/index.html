@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load bootstrap5 %}
+{% block content %}
+  <h1>Articles</h1>
+  {% if request.user.is_authenticated %}
+    <a href="{% url 'articles:create' %}">CREATE</a>
+  {% else %}
+    <a href="{% url 'accounts:login' %}">[새 글을 작성하려면 로그인 하세요]</a>
+  {% endif %}
+  <div class="search">
+    <form action="{% url 'articles:post_search' %}" method="GET">
+      <input type="text" name="q" placeholder="Search">
+    </form>
+  </div>
+  <hr>
+  <div id="articleList">
+  {% for article in articles %}
+    {% if article.image %}
+    <img src="{{ article.image.url }}" alt="{{ article.image }}">
+    <br>
+    {% endif %}
+    <br>
+    <p>작성자: <a href="{%url 'accounts:profile' article.user %}">{{ article.user }}</p></a>
+    <p>글 번호: {{ article.pk }}</p>  
+    <p>글 제목: {{ article.title }}</p>
+    <p>글 내용: {{ article.content }}</p>
+
+    <div>
+      <form class = "like-form" data-article-pk="{{ article.pk }}">
+        
+        {% if user in article.like_users.all %}
+          <i class="fa-solid fa-heart" id="box-{{ article.pk }}"><input type="submit" value="좋아요 취소" id="input-{{ article.pk }}"> </i>  
+          
+        {% else %}
+          <i class="fa-regular fa-heart" id="box-{{ article.pk }}"><input type="submit" value="좋아요" id="input-{{ article.pk }}"></i>
+          
+        {% endif %}
+      </form>
+    </div>
+    <i class="fa-solid fa-thumbs-up"></i><p id="cnt-{{ article.pk }}"> : {{article.like_users.all|length}}</p></i>
+    <!-- <div id="liked-cnt">
+      <i class="fa-solid fa-thumbs-up">{{article.like_users.all|length}}</i>
+    </div> -->
+
+
+    <a href="{% url 'articles:detail' article.pk %}">DETAIL</a>
+    <hr>
+  
+  {% endfor %}
+  </div>    
+
+  <div class='d-flex justify-content-center'>
+    {% bootstrap_pagination page_obj %}
+  </div>
+
+  {% block script %}
+  
+  <script>
+    const forms = document.querySelectorAll('.like-form')
+    forms.forEach(form=>{
+      form.addEventListener('submit', function(event){
+        event.preventDefault()
+        const articlePk = event.target.dataset.articlePk
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        axios({
+          method:'post',
+          url: `/articles/${articlePk}/likes/`,
+          headers : {
+          'X-CSRFToken' : csrftoken
+        }
+        }).then(res=>{
+
+          console.log(res)
+          const i = document.querySelector(`#box-${articlePk}`)
+          const liked =res.data.liked
+          const likedCnt = res.data.liked_cnt
+          const p = document.querySelector(`#cnt-${articlePk}`)
+          
+          p.innerText = `좋아요 수 : ${likedCnt}`
+          const input = document.querySelector(`#input-${articlePk}`)
+          if (liked==true){
+            i.setAttribute("class", "fa-solid fa-heart")
+            input.value = '좋아요 취소'
+            
+          }else{
+            i.setAttribute("class", "fa-regular fa-heart")
+            input.value = '좋아요'
+            
+            
+          
+          }
+        })
+
+
+      })
+    })
+
+    
+    // const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    // const personPk = form.dataset.personPk
+    // form.addEventListener('submit', function(event){
+    //   event.preventDefault()
+    //   axios({
+    //     method: 'post',
+    //     url: `/articles/${personPk}/likes/`,
+    //     headers : {
+    //       'X-CSRFToken' : csrftoken
+    //     }
+    //   })
+      
+    //   .then(res=>{
+    //     console.log(res)
+    //   //버튼 선택 ->값 바꿔주고
+    //   //팔로우수 선택해서 값 바꿔 주고
+    //     const liked = res.data.liked
+    //     const button = document.querySelector('button')
+    //     if(liked === true){
+    //       button.innerText = '좋아요 취소'
+          
+    //     }else{
+    //       button.innerText = '좋아요'
+         
+    //     }
+    //     const likeCnt = document.querySelector('#liked-cnt')
+    //     const likedCnt = res.data.liked_cnt
+    //     likeCnt.innerText = `좋아요 수 : ${likedCnt}`
+    // })
+    // })
+
+
+  </script>
+  {% endblock script %}
+{% endblock content %}
